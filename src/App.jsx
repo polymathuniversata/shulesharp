@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import DashboardLayout from './layouts/DashboardLayout'
 import Dashboard from './pages/Dashboard'
 import Students from './pages/Students'
 import FeeStructures from './pages/FeeStructures'
@@ -12,14 +13,16 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/students" element={<Students />} />
-      <Route path="/fee-structures" element={<FeeStructures />} />
-      <Route path="/payment-links" element={<PaymentLinks />} />
-      <Route path="/payments" element={<PaymentsTracker />} />
-      <Route path="/reports" element={<Reports />} />
+      <Route element={<DashboardLayout />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/students" element={<Students />} />
+        <Route path="/fee-structures" element={<FeeStructures />} />
+        <Route path="/payment-links" element={<PaymentLinks />} />
+        <Route path="/payments" element={<PaymentsTracker />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/settings" element={<Settings />} />
+      </Route>
       <Route path="/pay" element={<PayStudentFees />} />
-      <Route path="/settings" element={<Settings />} />
     </Routes>
   )
 }

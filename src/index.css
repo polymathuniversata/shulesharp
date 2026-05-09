@@ -1,25 +1,143 @@
 @import "tailwindcss";
 
-:root {
-  --color-primary-dark: #131416;
-  --color-teal: #006a6a;
-  --color-teal-light: #90efef;
+@theme {
+  /* ── PRIMARY ─────────────────────────────────── */
+  --color-primary: #131416;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #28282b;
+  --color-on-primary-container: #908f92;
+  --color-inverse-primary: #c8c6c9;
+  --color-primary-fixed: #e4e1e5;
+  --color-primary-fixed-dim: #c8c6c9;
+  --color-on-primary-fixed: #1b1b1e;
+  --color-on-primary-fixed-variant: #47464a;
+
+  /* ── SECONDARY (teal) ────────────────────────── */
+  --color-secondary: #006a6a;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #90efef;
+  --color-on-secondary-container: #006e6e;
+  --color-secondary-fixed: #93f2f2;
+  --color-secondary-fixed-dim: #76d6d5;
+  --color-on-secondary-fixed: #002020;
+  --color-on-secondary-fixed-variant: #004f4f;
+
+  /* ── TERTIARY ────────────────────────────────── */
+  --color-tertiary: #07151d;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #1c2a32;
+  --color-on-tertiary-container: #83919b;
+  --color-tertiary-fixed: #d6e5ef;
+  --color-tertiary-fixed-dim: #bac9d3;
+  --color-on-tertiary-fixed: #0f1d25;
+  --color-on-tertiary-fixed-variant: #3b4951;
+
+  /* ── ERROR ───────────────────────────────────── */
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  /* ── SURFACE ─────────────────────────────────── */
   --color-surface: #fdf8f8;
-  --color-border: #e0e0e0;
-  --color-paid: #1e8e3e;
-  --color-pending: #e65100;
-  --color-overdue: #ba1a1a;
+  --color-surface-dim: #ddd9d9;
+  --color-surface-bright: #fdf8f8;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f7f3f2;
+  --color-surface-container: #f1eded;
+  --color-surface-container-high: #ebe7e7;
+  --color-surface-container-highest: #e5e2e1;
+  --color-surface-variant: #e5e2e1;
+  --color-surface-tint: #5f5e61;
+  --color-on-surface: #1c1b1c;
+  --color-on-surface-variant: #46464b;
+  --color-inverse-surface: #313030;
+  --color-inverse-on-surface: #f4f0ef;
+
+  /* ── BACKGROUND ──────────────────────────────── */
+  --color-background: #fdf8f8;
+  --color-on-background: #1c1b1c;
+
+  /* ── OUTLINE ─────────────────────────────────── */
+  --color-outline: #77767b;
+  --color-outline-variant: #c7c6cb;
+
+  /* ── SPACING ─────────────────────────────────── */
+  --spacing-base: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-sidebar_width: 260px;
+  --spacing-max_container: 1440px;
+
+  /* ── FONT FAMILIES ───────────────────────────── */
+  --font-display-lg: "Plus Jakarta Sans", sans-serif;
+  --font-headline-md: "Plus Jakarta Sans", sans-serif;
+  --font-title-lg: "Inter", sans-serif;
+  --font-body-md: "Inter", sans-serif;
+  --font-body-sm: "Inter", sans-serif;
+  --font-data-mono: "Inter", sans-serif;
+  --font-label-bold: "Inter", sans-serif;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* ── TYPOGRAPHY SCALE ──────────────────────────── */
+@layer utilities {
+  .text-display-lg {
+    font-size: 36px;
+    line-height: 44px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .text-headline-md {
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 600;
+  }
+  .text-title-lg {
+    font-size: 18px;
+    line-height: 24px;
+    font-weight: 600;
+  }
+  .text-body-md {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 400;
+  }
+  .text-body-sm {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+  }
+  .text-data-mono {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .text-label-bold {
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
 }
+
+/* ── GLOBALS ───────────────────────────────────── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+}
+
+* { box-sizing: border-box; }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background-color: var(--color-surface);
-  color: #1a1a1a;
+  margin: 0;
+  background-color: #fdf8f8;
+  color: #1c1b1c;
+  font-family: "Inter", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
