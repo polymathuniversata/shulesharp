@@ -10,4 +10,8 @@ export const getPayment = (id) => api.get(`/payments/${id}`)
 export const listPayments = (limit = 100) => api.get('/payments', { params: { limit } })
 export const initiatePayment = (id) => api.post(`/payments/${id}/initiate`)
 
+export const listStudents = () => api.get('/students')
+export const createStudent = (data) => api.post('/students', data)
+export const deleteStudent = (id) => api.delete(`/students/${id}`)
+
 export default api

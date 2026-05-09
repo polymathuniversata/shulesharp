@@ -30,7 +30,7 @@ export default function TopBar() {
         <button className="px-md py-xs border border-outline text-on-surface font-label-bold text-label-bold rounded-lg hover:bg-surface-container transition-colors uppercase">
           Export Data
         </button>
-        <button className="px-md py-xs bg-secondary text-on-secondary font-label-bold text-label-bold rounded-lg hover:bg-secondary/90 shadow-sm transition-colors uppercase flex items-center gap-xs">
+        <button className="px-md py-xs bg-secondary text-on-secondary font-label-bold text-label-bold rounded-lg hover:bg-secondary/90 shadow-sm transition-colors uppercase flex items-center gap-xs hidden">
           <span className="material-symbols-outlined text-[18px]">add</span>
           New Transaction
         </button>

@@ -11,7 +11,7 @@ from typing import Any
 from dotenv import load_dotenv, find_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from .schemas import (
     CreateLinkRequest,
@@ -256,10 +256,11 @@ def list_students() -> list[StudentResponse]:
     return [StudentResponse(**s.__dict__) for s in store.list_students()]
 
 
-@app.delete('/students/{student_uuid}', status_code=status.HTTP_204_NO_CONTENT)
-def delete_student(student_uuid: str) -> None:
+@app.delete('/students/{student_uuid}')
+def delete_student(student_uuid: str) -> Response:
     if not store.delete_student(student_uuid):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Student not found')
+    return Response(status_code=204)
 
 
 @app.exception_handler(HTTPException)

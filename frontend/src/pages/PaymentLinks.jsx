@@ -1,12 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createPaymentLink, listPayments } from '../lib/api'
-
-const FEE_PLANS = {
-  'Term 2 Tuition + Transport': 1050,
-  'Annual Exam Fees': 500,
-  'Boarding Fees': 800,
-  'Custom Amount Entry...': 0,
-}
+import { createPaymentLink, listPayments, listStudents } from '../lib/api'
 
 const STATUS_STYLES = {
   pending: 'bg-surface-container-high text-on-surface-variant border border-outline-variant/30',
@@ -17,12 +10,14 @@ const STATUS_STYLES = {
 }
 
 export default function PaymentLinks() {
+  const [students, setStudents] = useState([])
+  const [selectedUuid, setSelectedUuid] = useState('')
   const [studentName, setStudentName] = useState('')
   const [studentId, setStudentId] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [parentEmail, setParentEmail] = useState('')
-  const [feePlan, setFeePlan] = useState('Term 2 Tuition + Transport')
-  const [customAmount, setCustomAmount] = useState('')
+  const [description, setDescription] = useState('')
+  const [amount, setAmount] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
@@ -30,12 +25,22 @@ export default function PaymentLinks() {
   const [paymentsLoading, setPaymentsLoading] = useState(true)
   const [copied, setCopied] = useState(null)
 
-  const isCustom = feePlan === 'Custom Amount Entry...'
-  const amount = isCustom ? (parseInt(customAmount) || 0) : FEE_PLANS[feePlan]
+  const parsedAmount = parseInt(amount) || 0
 
   useEffect(() => {
     refreshPayments()
+    listStudents().then((res) => setStudents(res.data)).catch(() => {})
   }, [])
+
+  function handleStudentSelect(uuid) {
+    setSelectedUuid(uuid)
+    const s = students.find((s) => s.id === uuid)
+    if (!s) return
+    setStudentName(s.name)
+    setStudentId(s.student_id)
+    setPhoneNumber(s.phone_number)
+    setParentEmail(s.parent_email)
+  }
 
   function refreshPayments() {
     setPaymentsLoading(true)
@@ -55,10 +60,10 @@ export default function PaymentLinks() {
         student_name: studentName,
         student_id: studentId,
         phone_number: phoneNumber,
-        amount,
+        amount: parsedAmount,
         currency: 'TZS',
         parent_email: parentEmail || undefined,
-        description: isCustom ? 'Custom Fee' : feePlan,
+        description: description || undefined,
       })
       setResult(res.data)
       refreshPayments()
@@ -120,61 +125,70 @@ export default function PaymentLinks() {
             Generate Payment Link
           </h3>
           <form className="flex flex-col gap-md" onSubmit={handleGenerate}>
+
+            {/* Student picker */}
+            <div className="flex flex-col gap-xs">
+              <label className="font-label-bold text-label-bold text-on-surface-variant uppercase">Select Student</label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none">person_search</span>
+                <select
+                  value={selectedUuid}
+                  onChange={(e) => handleStudentSelect(e.target.value)}
+                  className="w-full pl-[2.2rem] border border-outline-variant rounded-lg p-sm bg-surface font-body-md text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors appearance-none"
+                >
+                  <option value="">— Choose from roster —</option>
+                  {students.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.student_id})
+                    </option>
+                  ))}
+                </select>
+                <span className="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none">expand_more</span>
+              </div>
+              {students.length === 0 && (
+                <p className="font-body-sm text-body-sm text-on-surface-variant text-[11px]">
+                  No students on roster yet — add one in the Students page, or fill fields manually below.
+                </p>
+              )}
+            </div>
+
+            <div className="h-px bg-outline-variant/40" />
+
             <div className="flex flex-col gap-xs">
               <label className="font-label-bold text-label-bold text-on-surface-variant uppercase">Student Name</label>
               <input
                 required
                 value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
+                onChange={(e) => { setSelectedUuid(''); setStudentName(e.target.value) }}
                 placeholder="e.g. Alex Mercer"
                 className="w-full border border-outline-variant rounded-lg p-sm bg-surface font-body-md text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
               />
             </div>
-            <div className="flex flex-col gap-xs">
-              <label className="font-label-bold text-label-bold text-on-surface-variant uppercase">Student ID</label>
-              <input
-                required
-                value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-                placeholder="e.g. STU-1042"
-                className="w-full border border-outline-variant rounded-lg p-sm bg-surface font-body-md text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
-              />
-            </div>
-            <div className="flex flex-col gap-xs">
-              <label className="font-label-bold text-label-bold text-on-surface-variant uppercase">Phone Number</label>
-              <input
-                required
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="e.g. 0712345678"
-                className="w-full border border-outline-variant rounded-lg p-sm bg-surface font-body-md text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
-              />
-            </div>
-            <div className="flex flex-col gap-xs">
-              <label className="font-label-bold text-label-bold text-on-surface-variant uppercase">Fee Structure</label>
-              <select
-                value={feePlan}
-                onChange={(e) => setFeePlan(e.target.value)}
-                className="w-full border border-outline-variant rounded-lg p-sm bg-surface font-body-md text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
-              >
-                {Object.keys(FEE_PLANS).map((k) => <option key={k}>{k}</option>)}
-              </select>
-            </div>
-            {isCustom && (
+
+            <div className="grid grid-cols-2 gap-sm">
               <div className="flex flex-col gap-xs">
-                <label className="font-label-bold text-label-bold text-on-surface-variant uppercase">Amount (TSh)</label>
+                <label className="font-label-bold text-label-bold text-on-surface-variant uppercase">Student ID</label>
                 <input
                   required
-                  type="number"
-                  min="1"
-                  value={customAmount}
-                  onChange={(e) => setCustomAmount(e.target.value)}
-                  placeholder="e.g. 1200"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                  placeholder="STU-1042"
                   className="w-full border border-outline-variant rounded-lg p-sm bg-surface font-body-md text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
                 />
               </div>
-            )}
+              <div className="flex flex-col gap-xs">
+                <label className="font-label-bold text-label-bold text-on-surface-variant uppercase">Phone</label>
+                <input
+                  required
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="0712345678"
+                  className="w-full border border-outline-variant rounded-lg p-sm bg-surface font-body-md text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
+                />
+              </div>
+            </div>
+
             <div className="flex flex-col gap-xs">
               <label className="font-label-bold text-label-bold text-on-surface-variant uppercase">Parent Email</label>
               <input
@@ -186,17 +200,40 @@ export default function PaymentLinks() {
                 className="w-full border border-outline-variant rounded-lg p-sm bg-surface font-body-md text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
               />
             </div>
-            <div className="mt-sm p-sm bg-surface-container-low rounded-lg border border-outline-variant/50 flex flex-col gap-xs">
-              <div className="flex justify-between items-center">
-                <span className="font-body-sm text-on-surface-variant">Amount Due:</span>
-                <span className="font-data-mono text-data-mono text-on-surface">
-                  {amount ? `TSh ${amount.toLocaleString()}` : '—'}
-                </span>
+
+            <div className="h-px bg-outline-variant/40" />
+
+            <div className="flex flex-col gap-xs">
+              <label className="font-label-bold text-label-bold text-on-surface-variant uppercase">Fee Description</label>
+              <input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. Term 2 Tuition, Exam Fees…"
+                className="w-full border border-outline-variant rounded-lg p-sm bg-surface font-body-md text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
+              />
+            </div>
+
+            <div className="flex flex-col gap-xs">
+              <label className="font-label-bold text-label-bold text-on-surface-variant uppercase">Amount (TSh)</label>
+              <div className="relative">
+                <span className="absolute left-sm top-1/2 -translate-y-1/2 font-body-md text-on-surface-variant pointer-events-none">TSh</span>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0"
+                  className="w-full pl-[2.8rem] border border-outline-variant rounded-lg p-sm bg-surface font-data-mono text-data-mono text-on-surface focus:border-secondary focus:ring-1 focus:ring-secondary outline-none transition-colors"
+                />
               </div>
-              <div className="flex justify-between items-center">
-                <span className="font-body-sm text-on-surface-variant">Currency:</span>
-                <span className="font-data-mono text-data-mono text-on-surface">TZS</span>
-              </div>
+            </div>
+
+            <div className="p-sm bg-surface-container-low rounded-lg border border-outline-variant/50 flex justify-between items-center">
+              <span className="font-body-sm text-on-surface-variant">Amount Due:</span>
+              <span className={`font-data-mono text-data-mono ${parsedAmount > 0 ? 'text-secondary' : 'text-on-surface-variant'}`}>
+                {parsedAmount > 0 ? `TSh ${parsedAmount.toLocaleString()}` : '—'}
+              </span>
             </div>
 
             {error && (
@@ -207,7 +244,7 @@ export default function PaymentLinks() {
 
             <button
               type="submit"
-              disabled={loading || !studentName || !studentId || !phoneNumber || !parentEmail || !amount}
+              disabled={loading || !studentName || !studentId || !phoneNumber || !parentEmail || !parsedAmount}
               className="mt-xs w-full bg-secondary text-on-secondary py-sm rounded-lg font-label-bold text-label-bold uppercase tracking-wide hover:bg-secondary/90 transition-colors shadow-[0_4px_12px_rgba(0,106,106,0.15)] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Generating…' : 'Generate Payment Link'}

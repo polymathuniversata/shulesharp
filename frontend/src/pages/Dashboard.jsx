@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { listPayments } from '../lib/api'
 
 const statusMap = {
@@ -28,6 +29,7 @@ export default function Dashboard() {
   const rate = total > 0 ? Math.round((collected / total) * 100) : 0
   const pendingCount = payments.filter((p) => p.status === 'pending').length
   const recentPayments = payments.slice(0, 5)
+  const navigate = useNavigate()
 
   return (
     <div className="space-y-xl">
@@ -117,12 +119,13 @@ export default function Dashboard() {
         <h3 className="font-title-lg text-title-lg text-on-surface mb-md">Quick Actions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
           {[
-            { icon: 'add_link', title: 'Generate Link', desc: 'Create a new payment request' },
-            { icon: 'person_add', title: 'Add Student', desc: 'Register a new payer profile' },
-            { icon: 'receipt_long', title: 'Send Invoices', desc: 'Batch send term reminders' },
-          ].map(({ icon, title, desc }) => (
+            { icon: 'add_link', title: 'Generate Link', desc: 'Create a new payment request', to: '/payment-links' },
+            { icon: 'person_add', title: 'Add Student', desc: 'Register a new payer profile', to: '/students' },
+            { icon: 'receipt_long', title: 'Send Invoices', desc: 'Batch send term reminders', to: '/payments' },
+          ].map(({ icon, title, desc, to }) => (
             <button
               key={title}
+              onClick={() => navigate(to)}
               className="bg-surface-container-lowest border border-outline-variant/40 hover:border-secondary hover:shadow-[0_4px_12px_-4px_rgba(0,106,106,0.1)] transition-all p-md rounded-xl flex items-center gap-md text-left group"
             >
               <div className="w-12 h-12 rounded-lg bg-surface-container group-hover:bg-secondary-container/20 flex items-center justify-center text-on-surface-variant group-hover:text-secondary transition-colors">

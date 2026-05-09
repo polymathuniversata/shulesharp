@@ -264,121 +264,144 @@ export default function Students() {
       {/* Add Student Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-md">
-          <div className="bg-surface-container-lowest rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-            {/* Modal header */}
-            <div className="p-lg border-b border-outline-variant flex items-center justify-between bg-surface-bright">
-              <h3 className="font-title-lg text-title-lg text-on-surface flex items-center gap-sm m-0">
-                <span className="material-symbols-outlined text-secondary">person_add</span>
-                Add Student
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="w-8 h-8 rounded-full text-on-surface-variant hover:bg-surface-container flex items-center justify-center transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
+          <div className="bg-surface-container-lowest rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex">
+
+            {/* Left panel — branding */}
+            <div className="hidden md:flex flex-col justify-between bg-primary text-on-primary w-64 shrink-0 p-xl">
+              <div>
+                <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center mb-lg">
+                  <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
+                </div>
+                <h3 className="font-headline-sm text-headline-sm leading-tight mb-sm">New Student</h3>
+                <p className="font-body-sm text-body-sm opacity-70">
+                  Add a student to the roster so the bursar can generate payment links and track fee balances.
+                </p>
+              </div>
+              <div className="flex flex-col gap-sm">
+                {['Student identity', 'Guardian contact', 'Fee tracking'].map((item) => (
+                  <div key={item} className="flex items-center gap-sm opacity-80">
+                    <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                    <span className="font-label-bold text-label-bold">{item}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleAdd} className="p-lg flex flex-col gap-md">
-              <div className="grid grid-cols-2 gap-md">
-                <Field label="Student ID">
-                  <input
-                    required
-                    value={form.student_id}
-                    onChange={(e) => setField('student_id', e.target.value)}
-                    placeholder="e.g. STU-24-001"
-                    className={inputCls}
-                  />
-                </Field>
-                <Field label="Type">
-                  <select
-                    value={form.tag}
-                    onChange={(e) => setField('tag', e.target.value)}
-                    className={inputCls}
-                  >
-                    <option>New Admission</option>
-                    <option>Returning</option>
-                  </select>
-                </Field>
-              </div>
-
-              <Field label="Full Name">
-                <input
-                  required
-                  value={form.name}
-                  onChange={(e) => setField('name', e.target.value)}
-                  placeholder="e.g. Sophia Jenkins"
-                  className={inputCls}
-                />
-              </Field>
-
-              <Field label="Grade / Class">
-                <input
-                  required
-                  value={form.grade}
-                  onChange={(e) => setField('grade', e.target.value)}
-                  placeholder="e.g. Grade 5B"
-                  className={inputCls}
-                />
-              </Field>
-
-              <Field label="Guardian Name">
-                <input
-                  required
-                  value={form.guardian_name}
-                  onChange={(e) => setField('guardian_name', e.target.value)}
-                  placeholder="e.g. Robert Jenkins"
-                  className={inputCls}
-                />
-              </Field>
-
-              <div className="grid grid-cols-2 gap-md">
-                <Field label="Phone Number">
-                  <input
-                    required
-                    type="tel"
-                    value={form.phone_number}
-                    onChange={(e) => setField('phone_number', e.target.value)}
-                    placeholder="e.g. 0712345678"
-                    className={inputCls}
-                  />
-                </Field>
-                <Field label="Parent Email">
-                  <input
-                    required
-                    type="email"
-                    value={form.parent_email}
-                    onChange={(e) => setField('parent_email', e.target.value)}
-                    placeholder="parent@email.com"
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-
-              {formError && (
-                <div className="p-sm bg-error-container text-on-error-container rounded-lg font-body-sm text-body-sm">
-                  {formError}
-                </div>
-              )}
-
-              <div className="flex gap-sm mt-xs">
+            {/* Right panel — form */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="px-xl pt-xl pb-md flex items-center justify-between border-b border-outline-variant">
+                <h3 className="font-title-lg text-title-lg text-on-surface m-0">Student Details</h3>
                 <button
-                  type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 py-sm border border-outline-variant text-on-surface-variant font-label-bold text-label-bold rounded-lg uppercase hover:bg-surface-container transition-colors"
+                  className="w-8 h-8 rounded-full text-on-surface-variant hover:bg-surface-container flex items-center justify-center transition-colors"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={formLoading}
-                  className="flex-1 py-sm bg-secondary text-on-secondary font-label-bold text-label-bold rounded-lg uppercase hover:bg-secondary/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {formLoading ? 'Saving…' : 'Add Student'}
+                  <span className="material-symbols-outlined text-[20px]">close</span>
                 </button>
               </div>
-            </form>
+
+              {/* Form */}
+              <form onSubmit={handleAdd} className="px-xl py-lg flex flex-col gap-md overflow-y-auto">
+                <div className="grid grid-cols-2 gap-md">
+                  <Field label="Student ID">
+                    <input
+                      required
+                      value={form.student_id}
+                      onChange={(e) => setField('student_id', e.target.value)}
+                      placeholder="e.g. STU-24-001"
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label="Admission Type">
+                    <select
+                      value={form.tag}
+                      onChange={(e) => setField('tag', e.target.value)}
+                      className={inputCls}
+                    >
+                      <option>New Admission</option>
+                      <option>Returning</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-md">
+                  <Field label="Full Name">
+                    <input
+                      required
+                      value={form.name}
+                      onChange={(e) => setField('name', e.target.value)}
+                      placeholder="e.g. Sophia Jenkins"
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label="Grade / Class">
+                    <input
+                      required
+                      value={form.grade}
+                      onChange={(e) => setField('grade', e.target.value)}
+                      placeholder="e.g. Grade 5B"
+                      className={inputCls}
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Guardian Name">
+                  <input
+                    required
+                    value={form.guardian_name}
+                    onChange={(e) => setField('guardian_name', e.target.value)}
+                    placeholder="e.g. Robert Jenkins"
+                    className={inputCls}
+                  />
+                </Field>
+
+                <div className="grid grid-cols-2 gap-md">
+                  <Field label="Guardian Phone">
+                    <input
+                      required
+                      type="tel"
+                      value={form.phone_number}
+                      onChange={(e) => setField('phone_number', e.target.value)}
+                      placeholder="e.g. 0712345678"
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label="Guardian Email">
+                    <input
+                      required
+                      type="email"
+                      value={form.parent_email}
+                      onChange={(e) => setField('parent_email', e.target.value)}
+                      placeholder="parent@email.com"
+                      className={inputCls}
+                    />
+                  </Field>
+                </div>
+
+                {formError && (
+                  <div className="p-sm bg-error-container text-on-error-container rounded-lg font-body-sm text-body-sm">
+                    {formError}
+                  </div>
+                )}
+
+                <div className="flex gap-sm pt-xs">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 py-sm border border-outline-variant text-on-surface-variant font-label-bold text-label-bold rounded-lg uppercase hover:bg-surface-container transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={formLoading}
+                    className="flex-1 py-sm bg-secondary text-on-secondary font-label-bold text-label-bold rounded-lg uppercase hover:bg-secondary/90 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {formLoading ? 'Saving…' : 'Add Student'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
