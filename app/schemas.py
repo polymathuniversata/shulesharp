@@ -43,6 +43,27 @@ class PaymentStatusResponse(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 
+class CreateStudentRequest(BaseModel):
+    student_id: str = Field(..., min_length=1)
+    name: str = Field(..., min_length=1)
+    grade: str = Field(..., min_length=1)
+    guardian_name: str = Field(..., min_length=1)
+    phone_number: str = Field(..., min_length=7)
+    parent_email: EmailStr
+    tag: Optional[str] = 'New Admission'
+
+
+class StudentResponse(BaseModel):
+    id: str
+    student_id: str
+    name: str
+    grade: str
+    guardian_name: str
+    phone_number: str
+    parent_email: str
+    tag: str
+
+
 class WebhookEvent(BaseModel):
     id: Optional[str] = None
     type: Optional[str] = None

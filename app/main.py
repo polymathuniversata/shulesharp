@@ -10,17 +10,20 @@ from typing import Any
 
 from dotenv import load_dotenv, find_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .schemas import (
     CreateLinkRequest,
     CreateLinkResponse,
+    CreateStudentRequest,
     PaymentStatus,
     PaymentStatusResponse,
+    StudentResponse,
     WebhookEvent,
 )
 from .snippe import SnippeClient, SnippeClientError
-from .store import PaymentRecord, SQLitePaymentStore
+from .store import PaymentRecord, SQLitePaymentStore, Student
 
 load_dotenv(find_dotenv())
 
@@ -32,8 +35,15 @@ SNIPPE_WEBHOOK_SECRET = os.getenv('SNIPPE_WEBHOOK_SECRET', 'test-webhook-secret'
 WEBHOOK_SECRET = SNIPPE_WEBHOOK_SECRET
 DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./payments.db')
 WEBHOOK_MAX_AGE_SECONDS = int(os.getenv('WEBHOOK_MAX_AGE_SECONDS', '300'))
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
 app = FastAPI(title='School Payments API')
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 store = SQLitePaymentStore(db_url=DATABASE_URL)
 
 
@@ -41,7 +51,6 @@ def get_snippe_client() -> SnippeClient:
     return SnippeClient(
         api_key=SNIPPE_API_KEY,
         webhook_url=os.getenv('SNIPPE_WEBHOOK_URL'),
-        redirect_url=os.getenv('SNIPPE_REDIRECT_URL'),
     )
 
 
@@ -182,6 +191,41 @@ def healthcheck() -> dict[str, str]:
     except Exception as exc:
         logger.error('Healthcheck database failure: %s', exc)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail='Database unavailable')
+
+
+# ── Students ─────────────────────────────────────────────────────────────────
+
+@app.post('/students', response_model=StudentResponse, status_code=status.HTTP_201_CREATED)
+def create_student(request: CreateStudentRequest) -> StudentResponse:
+    student = Student(
+        id=str(uuid.uuid4()),
+        student_id=request.student_id,
+        name=request.name,
+        grade=request.grade,
+        guardian_name=request.guardian_name,
+        phone_number=request.phone_number,
+        parent_email=str(request.parent_email),
+        tag=request.tag or 'New Admission',
+    )
+    try:
+        store.create_student(student)
+    except Exception as exc:
+        if 'UNIQUE' in str(exc):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Student ID '{request.student_id}' already exists")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail='Failed to save student')
+    logger.info('Student created: %s (%s)', student.name, student.student_id)
+    return StudentResponse(**student.__dict__)
+
+
+@app.get('/students', response_model=list[StudentResponse])
+def list_students() -> list[StudentResponse]:
+    return [StudentResponse(**s.__dict__) for s in store.list_students()]
+
+
+@app.delete('/students/{student_uuid}', status_code=status.HTTP_204_NO_CONTENT)
+def delete_student(student_uuid: str) -> None:
+    if not store.delete_student(student_uuid):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Student not found')
 
 
 @app.exception_handler(HTTPException)
