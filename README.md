@@ -1,16 +1,39 @@
-# React + Vite
+# shulesharp
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A FastAPI backend for a school payments module using Snippe payment links and webhook-driven confirmation.
 
-Currently, two official plugins are available:
+## How it works
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- The backend uses `SNIPPE_API_KEY` to create payment links with Snippe.
+- The frontend receives the generated payment link and shares it with parents.
+- Snippe calls the backend webhook at `/webhooks/snippe` when payment events occur.
+- The backend verifies the webhook using `SNIPPE_WEBHOOK_SECRET` and updates payment status.
 
-## React Compiler
+## Quickstart
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Copy `.env.example` to `.env` and set real values.
+2. Install dependencies:
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
+3. Install `ngrok` and restart your terminal if necessary so Git Bash can see it.
+4. Run the service:
+   ```bash
+   python -m uvicorn app.main:app --reload --port 8000
+   ```
+5. Run tests:
+   ```bash
+   python -m pytest -q
+   ```
 
-## Expanding the ESLint configuration
+## Docs
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+See `docs/setup.md`, `docs/api.md`, and `docs/webhooks.md` for integration details.
+
+## Key features
+
+- Create Snippe payment links from student payment requests
+- Store payment records in SQLite
+- Confirm payment status via Snippe webhooks
+- Backend-only API key handling; frontend does not receive Snippe credentials
+- Health check endpoint: `GET /health`
