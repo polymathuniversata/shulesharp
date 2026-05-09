@@ -14,6 +14,7 @@ class PaymentRecord:
     payment_id: str
     student_name: str
     student_id: str
+    phone_number: str
     amount: int
     currency: str
     parent_email: Optional[str]
@@ -23,11 +24,12 @@ class PaymentRecord:
     snippe_link: Optional[str] = None
     metadata: Dict[str, str] = field(default_factory=dict)
 
-    def to_row(self) -> tuple[str, str, str, int, str, Optional[str], Optional[str], str, Optional[str], Optional[str], str]:
+    def to_row(self) -> tuple:
         return (
             self.payment_id,
             self.student_name,
             self.student_id,
+            self.phone_number,
             self.amount,
             self.currency,
             self.parent_email,
@@ -45,6 +47,7 @@ class PaymentRecord:
             payment_id=row['payment_id'],
             student_name=row['student_name'],
             student_id=row['student_id'],
+            phone_number=row['phone_number'] or '',
             amount=row['amount'],
             currency=row['currency'],
             parent_email=row['parent_email'],
@@ -77,6 +80,7 @@ class SQLitePaymentStore:
                 payment_id TEXT PRIMARY KEY,
                 student_name TEXT NOT NULL,
                 student_id TEXT NOT NULL,
+                phone_number TEXT NOT NULL DEFAULT '',
                 amount INTEGER NOT NULL,
                 currency TEXT NOT NULL,
                 parent_email TEXT,
@@ -88,6 +92,11 @@ class SQLitePaymentStore:
             )
             '''
         )
+        # Safe migration: add phone_number if table existed without it
+        try:
+            self.conn.execute("ALTER TABLE payments ADD COLUMN phone_number TEXT NOT NULL DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
         self.conn.execute(
             '''
             CREATE TABLE IF NOT EXISTS processed_webhook_events (
@@ -102,9 +111,9 @@ class SQLitePaymentStore:
         self.conn.execute(
             '''
             INSERT INTO payments (
-                payment_id, student_name, student_id, amount, currency,
+                payment_id, student_name, student_id, phone_number, amount, currency,
                 parent_email, description, status, snippe_reference, snippe_link, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''',
             record.to_row(),
         )
@@ -134,3 +143,10 @@ class SQLitePaymentStore:
     def mark_event_processed(self, event_id: str) -> None:
         self.conn.execute('INSERT OR IGNORE INTO processed_webhook_events (event_id) VALUES (?)', (event_id,))
         self.conn.commit()
+
+    def list(self, limit: int = 100) -> list[PaymentRecord]:
+        cursor = self.conn.execute(
+            'SELECT * FROM payments ORDER BY rowid DESC LIMIT ?',
+            (limit,),
+        )
+        return [PaymentRecord.from_row(row) for row in cursor.fetchall()]

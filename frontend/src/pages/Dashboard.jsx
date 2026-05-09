@@ -1,17 +1,34 @@
-const recentPayments = [
-  { name: 'Liam Anderson', grade: 'Grade 10 - Sci', date: 'Oct 24, 2023', amount: 'TSh 2,500.00', status: 'PAID' },
-  { name: 'Emma Davis', grade: 'Grade 12 - Art', date: 'Oct 24, 2023', amount: 'TSh 1,800.00', status: 'PROCESSING' },
-  { name: 'Noah Wilson', grade: 'Grade 9 - Gen', date: 'Oct 23, 2023', amount: 'TSh 3,000.00', status: 'FAILED' },
-  { name: 'Sophia Martinez', grade: 'Grade 11 - Sci', date: 'Oct 23, 2023', amount: 'TSh 2,500.00', status: 'PAID' },
-]
+import { useState, useEffect } from 'react'
+import { listPayments } from '../lib/api'
 
-const statusStyles = {
-  PAID: 'bg-secondary-container/30 text-on-secondary-container',
-  PROCESSING: 'bg-surface-container-highest text-on-surface-variant',
-  FAILED: 'bg-error-container/40 text-on-error-container',
+const statusMap = {
+  succeeded: { label: 'PAID', style: 'bg-secondary-container/30 text-on-secondary-container' },
+  pending: { label: 'PROCESSING', style: 'bg-surface-container-highest text-on-surface-variant' },
+  failed: { label: 'FAILED', style: 'bg-error-container/40 text-on-error-container' },
+  voided: { label: 'FAILED', style: 'bg-error-container/40 text-on-error-container' },
+  expired: { label: 'EXPIRED', style: 'bg-surface-container-highest text-on-surface-variant' },
 }
 
+const fmt = (n) => `TSh ${n.toLocaleString()}`
+
 export default function Dashboard() {
+  const [payments, setPayments] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    listPayments(50)
+      .then((res) => setPayments(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const collected = payments.filter((p) => p.status === 'succeeded').reduce((s, p) => s + p.amount, 0)
+  const outstanding = payments.filter((p) => p.status === 'pending').reduce((s, p) => s + p.amount, 0)
+  const total = collected + outstanding
+  const rate = total > 0 ? Math.round((collected / total) * 100) : 0
+  const pendingCount = payments.filter((p) => p.status === 'pending').length
+  const recentPayments = payments.slice(0, 5)
+
   return (
     <div className="space-y-xl">
       {/* Page Header */}
@@ -19,11 +36,11 @@ export default function Dashboard() {
         <div>
           <h2 className="font-display-lg text-display-lg text-on-surface">Overview</h2>
           <p className="font-body-md text-body-md text-on-surface-variant mt-xs">
-            Current fee collection status for Academic Year 2023-2024.
+            Current fee collection status for the active academic term.
           </p>
         </div>
         <div className="font-body-sm text-body-sm text-on-surface-variant bg-surface-container px-md py-xs rounded-full border border-outline-variant/50">
-          Last updated: Today at 09:42 AM
+          {loading ? 'Loading…' : `${payments.length} payments on record`}
         </div>
       </div>
 
@@ -40,11 +57,13 @@ export default function Dashboard() {
                 </span>
               </div>
             </div>
-            <div className="font-display-lg text-display-lg text-secondary">TSh 1,245,000</div>
+            <div className="font-display-lg text-display-lg text-secondary">
+              {loading ? '—' : fmt(collected)}
+            </div>
           </div>
           <div className="flex items-center gap-xs mt-auto text-secondary-fixed-dim font-label-bold text-label-bold">
             <span className="material-symbols-outlined text-[16px]">trending_up</span>
-            <span>+12% vs last cycle</span>
+            <span>{payments.filter((p) => p.status === 'succeeded').length} successful payments</span>
           </div>
         </div>
 
@@ -59,11 +78,13 @@ export default function Dashboard() {
                 </span>
               </div>
             </div>
-            <div className="font-display-lg text-display-lg text-on-surface">TSh 342,500</div>
+            <div className="font-display-lg text-display-lg text-on-surface">
+              {loading ? '—' : fmt(outstanding)}
+            </div>
           </div>
           <div className="flex items-center gap-xs mt-auto text-error font-body-sm text-body-sm">
             <span className="w-2 h-2 rounded-full bg-error" />
-            <span>45 accounts overdue</span>
+            <span>{pendingCount} {pendingCount === 1 ? 'account' : 'accounts'} pending</span>
           </div>
         </div>
 
@@ -72,13 +93,15 @@ export default function Dashboard() {
           <div className="flex flex-col justify-between h-full py-xs">
             <h3 className="font-title-lg text-title-lg text-on-surface">Collection Progress</h3>
             <div>
-              <div className="font-body-sm text-body-sm text-on-surface-variant mb-base">Target: TSh 1.6M</div>
-              <div className="font-headline-md text-headline-md text-on-surface">78% Achieved</div>
+              <div className="font-body-sm text-body-sm text-on-surface-variant mb-base">vs. outstanding</div>
+              <div className="font-headline-md text-headline-md text-on-surface">
+                {loading ? '—' : `${rate}% Achieved`}
+              </div>
             </div>
           </div>
           <div
             className="relative w-32 h-32 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'conic-gradient(#006a6a 78%, #ebe7e7 0)' }}
+            style={{ background: loading ? '#ebe7e7' : `conic-gradient(#006a6a ${rate}%, #ebe7e7 0)` }}
           >
             <div className="absolute w-24 h-24 bg-surface-container-lowest rounded-full flex items-center justify-center shadow-inner">
               <span className="material-symbols-outlined text-[32px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -124,38 +147,49 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[700px]">
-            <thead>
-              <tr className="bg-surface-container-low border-b border-outline-variant/30">
-                {['Student Name', 'Grade/Class', 'Date Received', 'Amount', 'Status'].map((h, i) => (
-                  <th
-                    key={h}
-                    className={`py-md px-lg font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider${i === 4 ? ' text-right' : ''}`}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="font-body-md text-body-md text-on-surface">
-              {recentPayments.map((row, i) => (
-                <tr
-                  key={i}
-                  className={`hover:bg-surface-container/50 transition-colors${i < recentPayments.length - 1 ? ' border-b border-outline-variant/20' : ''}`}
-                >
-                  <td className="py-md px-lg font-data-mono text-data-mono font-medium">{row.name}</td>
-                  <td className="py-md px-lg text-on-surface-variant">{row.grade}</td>
-                  <td className="py-md px-lg text-on-surface-variant">{row.date}</td>
-                  <td className="py-md px-lg font-data-mono text-data-mono font-medium">{row.amount}</td>
-                  <td className="py-md px-lg text-right">
-                    <span className={`inline-flex items-center px-sm py-base rounded-full font-label-bold text-label-bold ${statusStyles[row.status]}`}>
-                      {row.status}
-                    </span>
-                  </td>
+          {loading ? (
+            <div className="py-2xl text-center font-body-md text-body-md text-on-surface-variant">Loading payments…</div>
+          ) : recentPayments.length === 0 ? (
+            <div className="py-2xl text-center font-body-md text-body-md text-on-surface-variant">
+              No payments yet — generate a payment link to get started.
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr className="bg-surface-container-low border-b border-outline-variant/30">
+                  {['Student Name', 'Student ID', 'Description', 'Amount', 'Status'].map((h, i) => (
+                    <th
+                      key={h}
+                      className={`py-md px-lg font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider${i === 4 ? ' text-right' : ''}`}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="font-body-md text-body-md text-on-surface">
+                {recentPayments.map((p, i) => {
+                  const s = statusMap[p.status] || { label: p.status.toUpperCase(), style: 'bg-surface-container-highest text-on-surface-variant' }
+                  return (
+                    <tr
+                      key={p.payment_id}
+                      className={`hover:bg-surface-container/50 transition-colors${i < recentPayments.length - 1 ? ' border-b border-outline-variant/20' : ''}`}
+                    >
+                      <td className="py-md px-lg font-data-mono text-data-mono font-medium">{p.student_name}</td>
+                      <td className="py-md px-lg text-on-surface-variant font-data-mono">{p.student_id}</td>
+                      <td className="py-md px-lg text-on-surface-variant">{p.description || '—'}</td>
+                      <td className="py-md px-lg font-data-mono text-data-mono font-medium">{fmt(p.amount)}</td>
+                      <td className="py-md px-lg text-right">
+                        <span className={`inline-flex items-center px-sm py-base rounded-full font-label-bold text-label-bold ${s.style}`}>
+                          {s.label}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

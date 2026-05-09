@@ -10,11 +10,13 @@ from typing import Any
 
 from dotenv import load_dotenv, find_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .schemas import (
     CreateLinkRequest,
     CreateLinkResponse,
+    PaymentListItem,
     PaymentStatus,
     PaymentStatusResponse,
     WebhookEvent,
@@ -32,8 +34,15 @@ SNIPPE_WEBHOOK_SECRET = os.getenv('SNIPPE_WEBHOOK_SECRET', 'test-webhook-secret'
 WEBHOOK_SECRET = SNIPPE_WEBHOOK_SECRET
 DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./payments.db')
 WEBHOOK_MAX_AGE_SECONDS = int(os.getenv('WEBHOOK_MAX_AGE_SECONDS', '300'))
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
 app = FastAPI(title='School Payments API')
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost:5173', 'http://localhost:3000', '*'],
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 store = SQLitePaymentStore(db_url=DATABASE_URL)
 
 
@@ -41,7 +50,6 @@ def get_snippe_client() -> SnippeClient:
     return SnippeClient(
         api_key=SNIPPE_API_KEY,
         webhook_url=os.getenv('SNIPPE_WEBHOOK_URL'),
-        redirect_url=os.getenv('SNIPPE_REDIRECT_URL'),
     )
 
 
@@ -64,47 +72,80 @@ def verify_webhook_signature(payload: bytes, signature: str | None, timestamp: s
 
 
 @app.post('/payments/create-link', response_model=CreateLinkResponse, status_code=status.HTTP_201_CREATED)
-def create_payment_link(
-    request: CreateLinkRequest,
-    snippe_client: SnippeClient = Depends(get_snippe_client),
-) -> CreateLinkResponse:
+def create_payment_link(request: CreateLinkRequest) -> CreateLinkResponse:
     payment_id = str(uuid.uuid4())
     metadata: dict[str, Any] = {
         'payment_id': payment_id,
         'student_name': request.student_name,
         'student_id': request.student_id,
     }
-    logger.info('Creating payment link for %s %s amount=%s %s', request.student_name, request.student_id, request.amount, request.currency)
-
-    try:
-        result = snippe_client.create_link(
-            amount=request.amount,
-            currency=request.currency,
-            metadata=metadata,
-        )
-    except SnippeClientError as exc:
-        logger.error('Failed to create Snippe link: %s', exc)
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
-
+    logger.info('Creating payment record for %s %s amount=%s %s', request.student_name, request.student_id, request.amount, request.currency)
     record = PaymentRecord(
         payment_id=payment_id,
         student_name=request.student_name,
         student_id=request.student_id,
+        phone_number=request.phone_number,
         amount=request.amount,
         currency=request.currency,
         parent_email=request.parent_email,
         description=request.description,
         status=PaymentStatus.pending,
-        snippe_reference=result.get('reference') or result.get('reference_id'),
-        snippe_link=result.get('payment_link_url') or result.get('url') or result.get('checkout_url'),
         metadata=metadata,
     )
     store.create(record)
-    return CreateLinkResponse(
-        payment_id=payment_id,
-        snippe_link=record.snippe_link,
-        status=record.status,
-    )
+    return CreateLinkResponse(payment_id=payment_id, snippe_link=None, status=PaymentStatus.pending)
+
+
+@app.post('/payments/{payment_id}/initiate')
+def initiate_payment(
+    payment_id: str,
+    snippe_client: SnippeClient = Depends(get_snippe_client),
+) -> JSONResponse:
+    record = store.get(payment_id)
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Payment not found')
+    if record.status != PaymentStatus.pending:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Payment already completed or voided')
+    if record.snippe_reference:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Payment already initiated — check your phone')
+
+    callback_url = f'{FRONTEND_URL}/pay?payment_id={payment_id}'
+    try:
+        result = snippe_client.create_link(
+            amount=record.amount,
+            currency=record.currency,
+            phone_number=record.phone_number,
+            student_name=record.student_name,
+            parent_email=str(record.parent_email),
+            callback_url=callback_url,
+            metadata=record.metadata,
+        )
+    except SnippeClientError as exc:
+        logger.error('Failed to initiate Snippe payment: %s', exc)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
+    store.update_status(payment_id, PaymentStatus.pending, snippe_reference=result.get('reference'))
+    logger.info('USSD initiated for payment_id=%s snippe_ref=%s', payment_id, result.get('reference'))
+    return JSONResponse(content={'ok': True})
+
+
+@app.get('/payments', response_model=list[PaymentListItem])
+def list_payments(limit: int = 100) -> list[PaymentListItem]:
+    records = store.list(limit=limit)
+    return [
+        PaymentListItem(
+            payment_id=r.payment_id,
+            student_name=r.student_name,
+            student_id=r.student_id,
+            amount=r.amount,
+            currency=r.currency,
+            status=r.status,
+            snippe_link=r.snippe_link,
+            snippe_reference=r.snippe_reference,
+            description=r.description,
+        )
+        for r in records
+    ]
 
 
 @app.get('/payments/{payment_id}', response_model=PaymentStatusResponse)
