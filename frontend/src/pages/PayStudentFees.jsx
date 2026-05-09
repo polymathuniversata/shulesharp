@@ -184,8 +184,8 @@ export default function PayStudentFees() {
                     </p>
                     <div className="grid grid-cols-2 gap-sm">
                       {[
-                        { id: 'mtn', label: 'MTN MoMo', icon: 'signal_cellular_alt' },
-                        { id: 'airtel', label: 'Airtel Money', icon: 'signal_cellular_alt' },
+                        { id: 'mtn', label: 'Mobile money', icon: 'signal_cellular_alt' },
+                        { id: 'airtel', label: 'card payment', icon: 'signal_cellular_alt' },
                       ].map(({ id, label, icon }) => (
                         <label
                           key={id}
