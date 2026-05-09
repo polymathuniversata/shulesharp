@@ -59,6 +59,34 @@ class PaymentRecord:
         )
 
 
+@dataclass
+class Student:
+    id: str
+    student_id: str
+    name: str
+    grade: str
+    guardian_name: str
+    phone_number: str
+    parent_email: str
+    tag: str = 'New Admission'
+
+    def to_row(self) -> tuple:
+        return (self.id, self.student_id, self.name, self.grade, self.guardian_name, self.phone_number, self.parent_email, self.tag)
+
+    @staticmethod
+    def from_row(row: sqlite3.Row) -> 'Student':
+        return Student(
+            id=row['id'],
+            student_id=row['student_id'],
+            name=row['name'],
+            grade=row['grade'],
+            guardian_name=row['guardian_name'],
+            phone_number=row['phone_number'],
+            parent_email=row['parent_email'],
+            tag=row['tag'],
+        )
+
+
 class SQLitePaymentStore:
     def __init__(self, db_url: str = 'sqlite:///./payments.db') -> None:
         self.db_path = self._resolve_db_path(db_url)
@@ -102,6 +130,20 @@ class SQLitePaymentStore:
             CREATE TABLE IF NOT EXISTS processed_webhook_events (
                 event_id TEXT PRIMARY KEY,
                 received_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            '''
+        )
+        self.conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS students (
+                id TEXT PRIMARY KEY,
+                student_id TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                grade TEXT NOT NULL,
+                guardian_name TEXT NOT NULL,
+                phone_number TEXT NOT NULL,
+                parent_email TEXT NOT NULL,
+                tag TEXT NOT NULL DEFAULT 'New Admission'
             )
             '''
         )
@@ -150,3 +192,24 @@ class SQLitePaymentStore:
             (limit,),
         )
         return [PaymentRecord.from_row(row) for row in cursor.fetchall()]
+
+    # ── Students ────────────────────────────────────────────────────────────
+
+    def create_student(self, student: Student) -> None:
+        self.conn.execute(
+            '''
+            INSERT INTO students (id, student_id, name, grade, guardian_name, phone_number, parent_email, tag)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            student.to_row(),
+        )
+        self.conn.commit()
+
+    def list_students(self) -> list[Student]:
+        cursor = self.conn.execute('SELECT * FROM students ORDER BY rowid DESC')
+        return [Student.from_row(row) for row in cursor.fetchall()]
+
+    def delete_student(self, student_uuid: str) -> bool:
+        cursor = self.conn.execute('DELETE FROM students WHERE id = ?', (student_uuid,))
+        self.conn.commit()
+        return cursor.rowcount > 0
